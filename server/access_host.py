@@ -192,7 +192,7 @@ def make_handler(config: AccessConfig) -> type[BaseHTTPRequestHandler]:
                 page = f"""<!doctype html><html lang=\"en\"><meta charset=\"utf-8\">
 <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">
 <title>YH Autoresearch Internal Beta</title>
-<style>body{font:16px system-ui;max-width:34rem;margin:10vh auto;padding:1.2rem;color:#17202a}input,button{font:inherit;padding:.8rem;margin:.35rem 0;width:100%;box-sizing:border-box}button{background:#17202a;color:white;border:0;border-radius:.4rem}small{color:#59636e}</style>
+<style>body{{font:16px system-ui;max-width:34rem;margin:10vh auto;padding:1.2rem;color:#17202a}}input,button{{font:inherit;padding:.8rem;margin:.35rem 0;width:100%;box-sizing:border-box}}button{{background:#17202a;color:white;border:0;border-radius:.4rem}}small{{color:#59636e}}</style>
 <h1>YH Autoresearch</h1><p>Activate the client-side internal beta skill.</p>
 <form method=\"post\" action=\"{action}\"><label>Access code<input name=\"code\" autocomplete=\"one-time-code\" required maxlength=\"64\"></label><button>Activate and download</button></form>
 <small>The host distributes the skill only. Research stays in your agent workspace.</small></html>"""
