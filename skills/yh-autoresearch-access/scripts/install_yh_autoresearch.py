@@ -59,8 +59,9 @@ def activate_and_download(base_url: str, code: str, timeout: int = 60) -> tuple[
     expected_hash = str(activation.get("bundle_sha256", "")).lower()
     if not token or len(expected_hash) != 64:
         raise RuntimeError("activation response is incomplete")
+    bundle_url = str(activation.get("bundle_url", "/api/bundle"))
     download = urllib.request.Request(
-        urllib.parse.urljoin(base + "/", str(activation.get("bundle_url", "/api/bundle")).lstrip("/")),
+        urllib.parse.urljoin(base + "/", bundle_url),
         headers={"Authorization": f"Bearer {token}", "Accept": "application/zip"},
     )
     with urllib.request.urlopen(download, timeout=timeout) as response:
