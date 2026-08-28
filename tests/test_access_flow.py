@@ -75,6 +75,14 @@ class AccessFlowTests(unittest.TestCase):
             urllib.request.urlopen(request)
         self.assertEqual(caught.exception.code, 401)
 
+    def test_activation_page_renders(self) -> None:
+        with urllib.request.urlopen(self.base_url + "/") as response:
+            page = response.read().decode("utf-8")
+        self.assertEqual(response.status, 200)
+        self.assertIn("<title>YH Autoresearch Internal Beta</title>", page)
+        self.assertIn('action="/activate"', page)
+        self.assertIn("Research stays in your agent workspace.", page)
+
     def test_literal_code_activation_download_and_install(self) -> None:
         data, digest = installer.activate_and_download(self.base_url, "ac-19-n")
         self.assertEqual(data, self.bundle)
