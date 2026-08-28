@@ -11,7 +11,7 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-from server.access_host import AccessConfig, make_handler, verify_token
+from server.access_host import AccessConfig, make_handler, normalize_prefix, verify_token
 from http.server import ThreadingHTTPServer
 
 
@@ -95,6 +95,12 @@ class AccessFlowTests(unittest.TestCase):
         token = issue_token(self.config, now=100)
         self.assertTrue(verify_token(self.config, token, now=120))
         self.assertFalse(verify_token(self.config, token, now=161))
+
+    def test_public_prefix_normalization(self) -> None:
+        self.assertEqual(normalize_prefix("/release/yh-autoresearch/"), "/release/yh-autoresearch")
+        self.assertEqual(normalize_prefix(""), "")
+        with self.assertRaises(RuntimeError):
+            normalize_prefix("/release/../bad")
 
     def test_path_traversal_bundle_rejected(self) -> None:
         path = self.root / "unsafe.zip"
