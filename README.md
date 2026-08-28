@@ -34,6 +34,16 @@ py -m server.access_host --host 127.0.0.1 --port 8788
 
 For an internet deployment, terminate HTTPS at the reverse proxy, keep secure cookies enabled, and expose only the access host. The bundle service does not need model credentials or access to user research data.
 
+## Tencent release route
+
+The included Tencent deployment publishes the activation host at:
+
+```text
+https://43.153.65.53/release/yh-autoresearch/
+```
+
+It runs the Python distributor only on `127.0.0.1:18788`, adds an isolated Nginx snippet, keeps the access code in `/etc/yh-autoresearch/access.env`, and installs the verified client bundle under `/opt/yh-autoresearch/releases/`. See `tencent/deploy.sh`.
+
 ## Install from Codex or another filesystem-capable agent
 
 ```powershell
