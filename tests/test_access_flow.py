@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import hashlib
+import http.cookiejar
 import importlib.util
 import json
 import tempfile
 import threading
 import unittest
 import urllib.error
+import urllib.parse
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -82,6 +84,28 @@ class AccessFlowTests(unittest.TestCase):
         self.assertIn("<title>YH Autoresearch Internal Beta</title>", page)
         self.assertIn('action="/activate"', page)
         self.assertIn("Research stays in your agent workspace.", page)
+
+    def test_browser_form_activation_cookie_and_download(self) -> None:
+        cookie_jar = http.cookiejar.CookieJar()
+        opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookie_jar))
+        request = urllib.request.Request(
+            self.base_url + "/activate",
+            data=urllib.parse.urlencode({"code": "Alpha Charlie 19 Nato"}).encode(),
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            method="POST",
+        )
+        with opener.open(request) as response:
+            page = response.read().decode("utf-8")
+        self.assertEqual(response.status, 200)
+        self.assertIn("<title>Activated</title>", page)
+        cookies = list(cookie_jar)
+        self.assertEqual(len(cookies), 1)
+        self.assertEqual(cookies[0].path, "/")
+        self.assertTrue(cookies[0].has_nonstandard_attr("HttpOnly"))
+        with opener.open(self.base_url + "/download") as response:
+            downloaded = response.read()
+        self.assertEqual(response.status, 200)
+        self.assertEqual(downloaded, self.bundle)
 
     def test_literal_code_activation_download_and_install(self) -> None:
         data, digest = installer.activate_and_download(self.base_url, "ac-19-n")
