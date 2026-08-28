@@ -33,9 +33,11 @@ def make_test_bundle(path: Path) -> bytes:
         "execution": "client-side-agent",
         "files": [entry],
     }).encode()
+    checksums = f"{entry['sha256']}  SKILL.md\n".encode()
     with zipfile.ZipFile(path, "w") as archive:
         archive.writestr("yh-autoresearch/SKILL.md", skill)
         archive.writestr("yh-autoresearch/manifest.json", manifest)
+        archive.writestr("yh-autoresearch/checksums.sha256", checksums)
     return path.read_bytes()
 
 
@@ -100,6 +102,17 @@ class AccessFlowTests(unittest.TestCase):
             archive.writestr("../escape.txt", "bad")
         with self.assertRaisesRegex(RuntimeError, "unsafe archive path"):
             installer.install_bundle(path.read_bytes(), self.root / "unsafe-install")
+
+    def test_unlisted_bundle_file_rejected(self) -> None:
+        path = self.root / "extra.zip"
+        make_test_bundle(path)
+        rewritten = self.root / "extra-rewritten.zip"
+        with zipfile.ZipFile(path) as source, zipfile.ZipFile(rewritten, "w") as target:
+            for item in source.infolist():
+                target.writestr(item, source.read(item.filename))
+            target.writestr("yh-autoresearch/unlisted.txt", "not in manifest")
+        with self.assertRaisesRegex(RuntimeError, "file set"):
+            installer.install_bundle(rewritten.read_bytes(), self.root / "extra-install")
 
     def test_built_v4_bundle_end_to_end_when_present(self) -> None:
         real_bundle = ROOT / "dist" / "yh-autoresearch-0.4.0.zip"
