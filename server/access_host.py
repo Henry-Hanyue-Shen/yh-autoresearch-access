@@ -72,6 +72,7 @@ class AccessConfig:
     bundle_path: Path
     token_ttl_seconds: int = 900
     secure_cookie: bool = True
+    public_prefix: str = ""
 
     @classmethod
     def from_env(cls) -> "AccessConfig":
@@ -93,6 +94,7 @@ class AccessConfig:
             bundle_path=bundle_path,
             token_ttl_seconds=int(os.environ.get("YH_TOKEN_TTL_SECONDS", "900")),
             secure_cookie=os.environ.get("YH_SECURE_COOKIE", "1") != "0",
+            public_prefix=normalize_prefix(os.environ.get("YH_PUBLIC_PREFIX", "")),
         )
 
     @property
@@ -102,6 +104,13 @@ class AccessConfig:
             for block in iter(lambda: handle.read(1024 * 1024), b""):
                 digest.update(block)
         return digest.hexdigest()
+
+
+def normalize_prefix(value: str) -> str:
+    compact = "/" + value.strip().strip("/") if value.strip().strip("/") else ""
+    if ".." in compact or "//" in compact:
+        raise RuntimeError("YH_PUBLIC_PREFIX is invalid")
+    return compact
 
 
 def issue_token(config: AccessConfig, now: int | None = None) -> str:
@@ -179,12 +188,13 @@ def make_handler(config: AccessConfig) -> type[BaseHTTPRequestHandler]:
                 self._json(HTTPStatus.OK, {"ok": True, "service": "yh-autoresearch-access"})
                 return
             if self.path == "/":
-                page = """<!doctype html><html lang=\"en\"><meta charset=\"utf-8\">
+                action = html.escape(config.public_prefix + "/activate", quote=True)
+                page = f"""<!doctype html><html lang=\"en\"><meta charset=\"utf-8\">
 <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">
 <title>YH Autoresearch Internal Beta</title>
 <style>body{font:16px system-ui;max-width:34rem;margin:10vh auto;padding:1.2rem;color:#17202a}input,button{font:inherit;padding:.8rem;margin:.35rem 0;width:100%;box-sizing:border-box}button{background:#17202a;color:white;border:0;border-radius:.4rem}small{color:#59636e}</style>
 <h1>YH Autoresearch</h1><p>Activate the client-side internal beta skill.</p>
-<form method=\"post\" action=\"/activate\"><label>Access code<input name=\"code\" autocomplete=\"one-time-code\" required maxlength=\"64\"></label><button>Activate and download</button></form>
+<form method=\"post\" action=\"{action}\"><label>Access code<input name=\"code\" autocomplete=\"one-time-code\" required maxlength=\"64\"></label><button>Activate and download</button></form>
 <small>The host distributes the skill only. Research stays in your agent workspace.</small></html>"""
                 self._html(HTTPStatus.OK, page)
                 return
@@ -228,15 +238,17 @@ def make_handler(config: AccessConfig) -> type[BaseHTTPRequestHandler]:
                     {
                         "token": token,
                         "expires_in": config.token_ttl_seconds,
-                        "bundle_url": "/api/bundle",
+                        "bundle_url": config.public_prefix + "/api/bundle",
                         "bundle_sha256": config.bundle_sha256,
                     },
                 )
                 return
-            cookie = f"{COOKIE_NAME}={token}; Path=/; HttpOnly; SameSite=Strict; Max-Age={config.token_ttl_seconds}"
+            cookie_path = config.public_prefix + "/" if config.public_prefix else "/"
+            cookie = f"{COOKIE_NAME}={token}; Path={cookie_path}; HttpOnly; SameSite=Strict; Max-Age={config.token_ttl_seconds}"
             if config.secure_cookie:
                 cookie += "; Secure"
-            page = "<!doctype html><meta charset=\"utf-8\"><title>Activated</title><p>Activation accepted.</p><p><a href=\"/download\">Download YH Autoresearch</a></p>"
+            download_url = html.escape(config.public_prefix + "/download", quote=True)
+            page = f"<!doctype html><meta charset=\"utf-8\"><title>Activated</title><p>Activation accepted.</p><p><a href=\"{download_url}\">Download YH Autoresearch</a></p>"
             self._html(HTTPStatus.OK, page, cookie=cookie)
 
         def log_message(self, format: str, *args: object) -> None:
