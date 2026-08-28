@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "yh-autoresearch-access"
+version = "0.1.0"
+description = "Code-gated distribution bootstrap for the client-side YH Autoresearch skill"
+requires-python = ">=3.10"
+dependencies = []
+
+[tool.setuptools]
+packages = ["server"]
