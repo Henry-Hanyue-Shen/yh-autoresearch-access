@@ -10,7 +10,7 @@ This is a distribution bootstrap, not a research runner. The complete research h
 ## Activation workflow
 
 1. Read [references/installation.md](references/installation.md) before installing or updating.
-2. Resolve the access host from `YH_AUTORESEARCH_ACCESS_URL` or an exact URL supplied by the user. Never invent a host.
+2. Use an exact URL supplied by the user or `YH_AUTORESEARCH_ACCESS_URL`; otherwise use the canonical internal-beta host `https://43.153.65.53/release/yh-autoresearch`. Never invent another host.
 3. Run `scripts/install_yh_autoresearch.py` with the resolved host and target agent.
 4. Let the user enter the access code through the script's hidden prompt or through the host's HTTPS activation page. Do not write access codes into source files, command history, logs, Git, or conversation summaries.
 5. Require checksum and manifest verification to pass before installation.
