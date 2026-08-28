@@ -47,7 +47,7 @@ It runs the Python distributor only on `127.0.0.1:18788`, adds an isolated Nginx
 ## Install from Codex or another filesystem-capable agent
 
 ```powershell
-$env:YH_AUTORESEARCH_ACCESS_URL='https://exact-host-supplied-by-yh.example'
+$env:YH_AUTORESEARCH_ACCESS_URL='https://43.153.65.53/release/yh-autoresearch'
 py skills\yh-autoresearch-access\scripts\install_yh_autoresearch.py --agent codex
 ```
 
