@@ -87,18 +87,42 @@ fi
 sudo systemctl daemon-reload
 sudo systemctl enable --now yh-autoresearch-access.service
 for _ in $(seq 1 30); do
-  if curl -fsS http://127.0.0.1:18788/healthz | grep -q '"ok":true'; then break; fi
+  if curl -fsS http://127.0.0.1:18788/healthz 2>/dev/null | grep -q '"ok":true'; then break; fi
   sleep 0.2
 done
 curl -fsS http://127.0.0.1:18788/healthz | grep -q '"ok":true'
 sudo nginx -t
+sudo nginx -T 2>/dev/null | grep -F 'location ^~ /release/yh-autoresearch/' >/dev/null
 sudo systemctl reload nginx
 
-public_status="$(curl -ksS -o /tmp/yh-autoresearch-index.html -w '%{http_code}' https://43.153.65.53/release/yh-autoresearch/)"
-test "$public_status" = 200
-grep -q '<title>YH Autoresearch Internal Beta</title>' /tmp/yh-autoresearch-index.html
-unauth_status="$(curl -ksS -o /dev/null -w '%{http_code}' https://43.153.65.53/release/yh-autoresearch/api/bundle)"
-test "$unauth_status" = 401
+# systemctl reload returns before every old nginx worker has drained. Poll the
+# externally visible route so an old catch-all response cannot create a false
+# deployment failure and rollback.
+public_ready=0
+public_status=000
+for _ in $(seq 1 50); do
+  public_status="$(curl -sS -o /tmp/yh-autoresearch-index.html -w '%{http_code}' https://43.153.65.53/release/yh-autoresearch/ || true)"
+  if test "$public_status" = 200 && grep -q '<title>YH Autoresearch Internal Beta</title>' /tmp/yh-autoresearch-index.html; then
+    public_ready=1
+    break
+  fi
+  sleep 0.2
+done
+echo "public_status=$public_status public_ready=$public_ready"
+test "$public_ready" = 1
+
+unauth_ready=0
+unauth_status=000
+for _ in $(seq 1 30); do
+  unauth_status="$(curl -sS -o /dev/null -w '%{http_code}' https://43.153.65.53/release/yh-autoresearch/api/bundle || true)"
+  if test "$unauth_status" = 401; then
+    unauth_ready=1
+    break
+  fi
+  sleep 0.2
+done
+echo "unauth_status=$unauth_status unauth_ready=$unauth_ready"
+test "$unauth_ready" = 1
 sudo systemctl is-active --quiet yh-autoresearch-access.service
 sudo systemctl is-active --quiet nginx
 trap - ERR
