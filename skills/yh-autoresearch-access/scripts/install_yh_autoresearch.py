@@ -94,15 +94,23 @@ def verify_tree(root: Path) -> dict[str, object]:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     if manifest.get("name") != "yh-autoresearch" or manifest.get("execution") != "client-side-agent":
         raise RuntimeError("bundle manifest identity is invalid")
-    for entry in manifest.get("files", []):
+    entries = manifest.get("files", [])
+    if not isinstance(entries, list) or not entries:
+        raise RuntimeError("bundle manifest has no files")
+    expected_files = {"manifest.json", "checksums.sha256"}
+    for entry in entries:
         relative = Path(str(entry.get("path", "")))
         if relative.is_absolute() or ".." in relative.parts:
             raise RuntimeError("manifest contains an unsafe path")
+        expected_files.add(relative.as_posix())
         path = root / relative
         if not path.is_file() or path.stat().st_size != int(entry.get("size", -1)):
             raise RuntimeError(f"manifest size mismatch: {relative.as_posix()}")
         if sha256_file(path) != entry.get("sha256"):
             raise RuntimeError(f"manifest checksum mismatch: {relative.as_posix()}")
+    actual_files = {path.relative_to(root).as_posix() for path in root.rglob("*") if path.is_file()}
+    if actual_files != expected_files:
+        raise RuntimeError("bundle file set does not match the manifest")
     return manifest
 
 
